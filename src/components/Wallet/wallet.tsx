@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import {etherClient, IWalletInfo} from '../../ethers/etherClient';
 import {Trans} from "@lingui/macro";
@@ -10,13 +10,11 @@ import {useDispatch, useSelector} from "react-redux";
 import {StateType} from "../../reducers/state";
 import { walletConnectionAction} from "../../reducers/action";
 import {useRecoilState} from "recoil";
-import {chainIdState, networkState, tokenReceiverAddr} from "../../hooks/Atoms";
-import {NetworkConfig} from "../../constants/network";
+import {chainIdState, tokenReceiverAddr} from "../../hooks/Atoms";
 
 const WalletInfo: React.FC<IBaseProps> = (props:IBaseProps) => {
     const [walletInfo, setWalletInfo] = useState<IWalletInfo | null>(null);
 	const action = useSelector((state:StateType)=>state.action);
-	const [network,] = useRecoilState(networkState)
 	const [, setReceiverAddr] = useRecoilState(tokenReceiverAddr)
 	const dispatch = useDispatch();
 	const [chainId, setChainId] = useRecoilState(chainIdState);
@@ -24,7 +22,7 @@ const WalletInfo: React.FC<IBaseProps> = (props:IBaseProps) => {
 
 	useMemo(()=>{
 		if(walletInfo?.networkName==="bnb"){
-			setChainName("BSC")
+			setChainName("BNB")
 			setChainId(56)
 		}
 		if(walletInfo?.networkName==="homestead"){
@@ -80,17 +78,18 @@ const WalletInfo: React.FC<IBaseProps> = (props:IBaseProps) => {
             <Button colorScheme="blackAlpha" bg="#2b2d32"
                     boxShadow="sm" onClick={connectWallet}
                     isLoading={false} >
-                <Image src="./metamask.svg" width="22" height="22" />
+	            {walletInfo && walletInfo.chainId === chainId&&(<>{chainName}</>)}
+	            <Image src="./metamask.svg" width="22" height="22" />
 
                 { !walletInfo && <div> <Trans> Connect Wallet </Trans> </div>}
 
                 {walletInfo && walletInfo.chainId !== chainId && (
-	                <div> <Trans>Use ETH/BSC/MATIC</Trans> </div>
+	                <div> <Trans>Use ETH/BNB/MATIC</Trans> </div>
                 )}
 
                 {walletInfo && walletInfo.chainId === chainId &&(
 					<div>
-						{chainName} {walletInfo.address.substr(0, 6)}...{walletInfo.address.substr(-4)}
+						{walletInfo.address.substr(0, 6)}...{walletInfo.address.substr(-4)}
 					</div>
                 )}
             </Button>

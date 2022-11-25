@@ -20,17 +20,19 @@ import {TextInput} from "../TextInput/textinput";
 import {CryptoMachine2022} from "../../lib/crypto";
 import {etherClient} from "../../ethers/etherClient";
 import {useWarningToast} from "../../hooks/useToast";
+import {ViewIcon} from "@chakra-ui/icons";
 
 const PasswordInQuery:React.FC<IBaseProps> = (props:IBaseProps)=>{
 	const [savedContents, setSavedContents] = useState<string[]>([]);
 	const [savedLabels, setSavedLabels] = useState<string[]>([]);
+	const [hasDecrypt, setHasDecrypt] = useState<number[]>([]);
 
 	const [isOpen, setOpen] = useState<boolean>(false)
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const dispatch = useDispatch();
 	const [lang, ] = useRecoilState(languageState)
 	const [passwordHolder, setPasswordHolder] = useState<string>("password ...")
-	const [tipMessage, setTipMessage] = useState<string>("Click me to decrypt")
+	const [tipMessage, setTipMessage] = useState<string>("Click View Icon to decrypt")
 
 	const [vaultName, ] = useRecoilState(vaultNameState);
 	const [password, setPassword] = useRecoilState(vaultPasswordState);
@@ -42,12 +44,12 @@ const PasswordInQuery:React.FC<IBaseProps> = (props:IBaseProps)=>{
 	useMemo(()=>{
 		if(lang==='zh-CN'){
 			setPasswordHolder("密钥...")
-			setTipMessage("点击解密内容")
+			setTipMessage("点击眼睛图标解密内容")
 		}
 
 		if(lang==='en-US'){
 			setPasswordHolder("password ...")
-			setTipMessage("Click me to decrypt")
+			setTipMessage("Click ViewIcon to decrypt")
 		}
 	},[lang])
 
@@ -62,13 +64,16 @@ const PasswordInQuery:React.FC<IBaseProps> = (props:IBaseProps)=>{
 	const doCancel = useCallback(()=>{
 		dispatch(cancelPasswordAction(ActionType.CLICK_QUERY, isConnection));
 		setIsLoading(false);
-		setOpen(isOpen);
+		setOpen(false);
 		setSavedLabels([]);
 		setSavedContents([]);
+		setHasDecrypt([]);
 	},[vaultName, dispatch])
 
 	const doSubmit = useCallback(async ()=>{
+		console.log("IsLoading:", isLoading);
 		setIsLoading(true);
+		console.log("IsLoading:", isLoading);
 		if(vaultName===undefined || password===undefined) {
 			warningToast("Undefined content")
 			setIsLoading(false);
@@ -149,23 +154,36 @@ const PasswordInQuery:React.FC<IBaseProps> = (props:IBaseProps)=>{
 		let contentPassword = encryptor.getContentPassword(vaultName, password, wheelLabels);
 		savedContents[index] = await encryptor.multiDecryptMessage(content,contentPassword);
 		setSavedContents(savedContents.concat());
+		hasDecrypt[index] = 1;
+		setHasDecrypt(hasDecrypt.concat());
 		setIsLoading(false);
-	},[savedContents,savedLabels, chainId])
+	},[savedContents,savedLabels, chainId, hasDecrypt])
 
 	const showQueryContent = useMemo(()=>{
 		const contents = savedLabels.map( (label:string, index:number)=>
 			<HStack>
-				<Tooltip label={tipMessage} aria-label='A tooltip' bg="blackAlpha.900">
-					<Button onClick={async ()=>await doDecrypto(label, index)}>
-						{label}: {savedContents[index]}
-					</Button>
-				</Tooltip>
+				{hasDecrypt[index]!==1 &&(
+					<>
+					<Tooltip label={tipMessage} aria-label='A tooltip' bg="blackAlpha.900">
+						<Button>
+							{label}: {savedContents[index]}
+						</Button>
+					</Tooltip>
+					<ViewIcon color="white" marginRight='10px' onClick={async()=>await doDecrypto(label, index)}/>
+					</>
+				)}
+
+				{hasDecrypt[index]===1 &&(
+					<>
+							<Button>{label}:</Button><Text w="320px" color="white">{savedContents[index]} </Text>
+					</>
+				)}
 			</HStack>
 		)
 		return(
 			<>{contents}</>
 		);
-	},[savedContents]);
+	},[savedContents, hasDecrypt]);
 
 	return(
 		<Drawer
